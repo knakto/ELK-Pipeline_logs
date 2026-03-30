@@ -5,17 +5,20 @@ services:
     container_name: elasticsearch
     restart: always
     volumes:
-    - ./elastic_data:/usr/share/elasticsearch/data
+    - ./elasticsearch/elastic_data:/usr/share/elasticsearch/data
+    - ./elasticsearch/http.p12:/usr/share/elasticsearch/config/http.p12
+    - ./elasticsearch/service_tokens:/usr/share/elasticsearch/config/service_tokens
+    env_file:
+      - .env
     environment:
       discovery.type: "single-node"
-      xpack.security.enabled: false
-      xpack.security.enrollment.enabled: false
+      xpack.security.enabled: true
+      xpack.security.http.ssl.enabled: true
+      xpack.security.http.ssl.keystore.path: "http.p12"
+      xpack.security.enrollment.enabled: true
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
     ports:
     - '9200:9200'
-    - '9300:9300'
-    expose:
-    - 9200
     networks:
       - elk
 
@@ -25,13 +28,17 @@ services:
     restart: always
     volumes:
     - ./logstash/:/usr/share/logstash/logstash_dir
-    - ./temp:/usr/share/logstash/temp
+    - ./kibana/elasticsearch-ca.pem:/usr/share/logstash/config/certs/elasticsearch-ca.pem
     command: logstash -f /usr/share/logstash/logstash_dir/logstash.conf
     depends_on:
       - elasticsearch
     ports:
-    - '9600:9600'
+    - '5000:5000'
+    env_file:
+      - .env
     environment:
+      ELASTIC_USER: ${ELASTIC_USER}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"    
     networks:
       - elk
@@ -40,10 +47,18 @@ services:
     image: kibana:9.3.2
     container_name: kibana
     restart: always       
-    ports:
-    - '5601:5601'
+    volumes:
+      - ./kibana/elasticsearch-ca.pem:/usr/share/kibana/config/elasticsearch-ca.pem
+      - ./elasticsearch/http.p12:/usr/share/kibana/config/certs/http.p12
+    env_file:
+      - .env
     environment:
-      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+      ELASTICSEARCH_HOSTS: "https://elasticsearch:9200"
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: "/usr/share/kibana/config/elasticsearch-ca.pem"
+      SERVER_SSL_ENABLED: true
+      SERVER_SSL_KEYSTORE_PATH: "/usr/share/kibana/config/certs/http.p12"
+    ports:
+      - '5601:5601'
     depends_on:
       - elasticsearch  
     networks:
