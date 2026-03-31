@@ -1,20 +1,24 @@
-version: '3.6'
 services:
   elasticsearch:
     image: elasticsearch:9.3.2
     container_name: elasticsearch
     restart: always
+    user: "1000:1000"
     volumes:
-    - ./elasticsearch/elastic_data:/usr/share/elasticsearch/data
-    - ./elasticsearch/http.p12:/usr/share/elasticsearch/config/http.p12
-    - ./elasticsearch/service_tokens:/usr/share/elasticsearch/config/service_tokens
+    - ./elastic_data:/usr/share/elasticsearch/data
+    - ./certs/server.crt:/usr/share/elasticsearch/config/certs/server.crt:ro
+    - ./certs/server.key:/usr/share/elasticsearch/config/certs/server.key:ro
+    - ./certs/ca.crt:/usr/share/elasticsearch/config/certs/ca.crt:ro
+    - ./certs/service_tokens:/usr/share/elasticsearch/config/service_tokens:ro
     env_file:
       - .env
     environment:
       discovery.type: "single-node"
       xpack.security.enabled: true
       xpack.security.http.ssl.enabled: true
-      xpack.security.http.ssl.keystore.path: "http.p12"
+      xpack.security.http.ssl.certificate: "certs/server.crt"
+      xpack.security.http.ssl.key: "certs/server.key"
+      xpack.security.http.ssl.certificate_authorities: "certs/ca.crt"
       xpack.security.enrollment.enabled: true
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
     ports:
@@ -27,8 +31,8 @@ services:
     container_name: logstash
     restart: always
     volumes:
-    - ./logstash/:/usr/share/logstash/logstash_dir
-    - ./kibana/elasticsearch-ca.pem:/usr/share/logstash/config/certs/elasticsearch-ca.pem
+      - ./config/:/usr/share/logstash/logstash_dir:ro
+      - ./certs/ca.crt:/usr/share/logstash/config/certs/ca.crt:ro
     command: logstash -f /usr/share/logstash/logstash_dir/logstash.conf
     depends_on:
       - elasticsearch
@@ -48,15 +52,17 @@ services:
     container_name: kibana
     restart: always       
     volumes:
-      - ./kibana/elasticsearch-ca.pem:/usr/share/kibana/config/elasticsearch-ca.pem
-      - ./elasticsearch/http.p12:/usr/share/kibana/config/certs/http.p12
+      - ./certs/ca.crt:/usr/share/kibana/config/certs/ca.crt:ro
+      - ./certs/server.crt:/usr/share/kibana/config/certs/server.crt:ro
+      - ./certs/server.key:/usr/share/kibana/config/certs/server.key:ro
     env_file:
       - .env
     environment:
       ELASTICSEARCH_HOSTS: "https://elasticsearch:9200"
-      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: "/usr/share/kibana/config/elasticsearch-ca.pem"
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: "/usr/share/kibana/config/certs/ca.crt"
       SERVER_SSL_ENABLED: true
-      SERVER_SSL_KEYSTORE_PATH: "/usr/share/kibana/config/certs/http.p12"
+      SERVER_SSL_CERTIFICATE: "/usr/share/kibana/config/certs/server.crt"
+      SERVER_SSL_KEY: "/usr/share/kibana/config/certs/server.key"
     ports:
       - '5601:5601'
     depends_on:
