@@ -105,4 +105,12 @@ else
   echo -e $GREEN"Already have access token"$RESET
 fi
 
+#==================
+### permission issue in 42 PC
+#==================
+docker run --rm -v ./certs:/data alpine:latest chown -R 1000:1000 /data
+docker run --rm -v ./elastic_data:/data alpine:latest chown -R 1000:1000 /data
+docker run --rm -v ./config:/data alpine:latest chown -R 1000:1000 /data
+
+
 docker-compose up -d

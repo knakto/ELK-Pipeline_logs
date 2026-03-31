@@ -3,12 +3,13 @@ services:
     image: elasticsearch:9.3.2
     container_name: elasticsearch
     restart: always
+    user: "1000:1000"
     volumes:
     - ./elastic_data:/usr/share/elasticsearch/data
-    - ./certs/server.crt:/usr/share/elasticsearch/config/certs/server.crt
-    - ./certs/server.key:/usr/share/elasticsearch/config/certs/server.key
-    - ./certs/ca.crt:/usr/share/elasticsearch/config/certs/ca.crt
-    - ./certs/service_tokens:/usr/share/elasticsearch/config/service_tokens
+    - ./certs/server.crt:/usr/share/elasticsearch/config/certs/server.crt:ro
+    - ./certs/server.key:/usr/share/elasticsearch/config/certs/server.key:ro
+    - ./certs/ca.crt:/usr/share/elasticsearch/config/certs/ca.crt:ro
+    - ./certs/service_tokens:/usr/share/elasticsearch/config/service_tokens:ro
     env_file:
       - .env
     environment:
@@ -30,8 +31,8 @@ services:
     container_name: logstash
     restart: always
     volumes:
-    - ./config/:/usr/share/logstash/logstash_dir
-    - ./certs/ca.crt:/usr/share/logstash/config/certs/ca.crt
+      - ./config/:/usr/share/logstash/logstash_dir:ro
+      - ./certs/ca.crt:/usr/share/logstash/config/certs/ca.crt:ro
     command: logstash -f /usr/share/logstash/logstash_dir/logstash.conf
     depends_on:
       - elasticsearch
@@ -51,9 +52,9 @@ services:
     container_name: kibana
     restart: always       
     volumes:
-      - ./certs/ca.crt:/usr/share/kibana/config/certs/ca.crt
-      - ./certs/server.crt:/usr/share/kibana/config/certs/server.crt
-      - ./certs/server.key:/usr/share/kibana/config/certs/server.key
+      - ./certs/ca.crt:/usr/share/kibana/config/certs/ca.crt:ro
+      - ./certs/server.crt:/usr/share/kibana/config/certs/server.crt:ro
+      - ./certs/server.key:/usr/share/kibana/config/certs/server.key:ro
     env_file:
       - .env
     environment:
