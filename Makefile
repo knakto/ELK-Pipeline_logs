@@ -1,5 +1,4 @@
-ELASTIC_PATH = elasticsearch
-ELASTIC_DATA_PATH = $(ELASTIC_PATH)/elastic_data
+all: setup
 
 up:
 	docker-compose up -d
@@ -7,15 +6,17 @@ up:
 down:
 	docker-compose down
 
-restart: down up
-
 prune:
 	docker system prune -a
 
-clean: prune clean_elastic
+clean: down prune uninstall
 
+setup:
+	bash setupELK.sh
 
-#---------------- Elasticsearch --------------#
+uninstall:
+	bash uninstallELK.sh
 
-clean_elastic:
-	rm -rf $(ELASTIC_DATA_PATH)/*
+re: down up
+
+.PHONY: up down prune clean setup uninstall re all
